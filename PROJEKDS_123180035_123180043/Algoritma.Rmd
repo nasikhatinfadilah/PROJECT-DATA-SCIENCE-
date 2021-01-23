@@ -1,0 +1,198 @@
+---
+title: "Algoritma"
+author: "Desi&Nasikhatin/43&35"
+date: "16/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(e1071)
+library(caret)
+library(syuzhet)
+```
+```{r}
+datavaksin<-read.csv("vaksin.csv", stringsAsFactors = FALSE)
+review <- as.character(datavaksin$text)
+s<-get_nrc_sentiment(review)
+```
+
+```{r}
+review_combine<-cbind(datavaksin$text, s)
+par(mar=rep(3,4))
+a<-barplot(colSums(s), col=rainbow(10), ylab='count', main='sentiment analisis')
+brplt<-a
+```
+```{r}
+library(tm)
+library(RTextTools)
+library(e1071)
+library(dplyr)
+library(caret)
+df<-read.csv("vaksin.csv", stringsAsFactors = FALSE)
+glimpse(df)
+
+set.seed(20)
+df<-df[sample(nrow(df)),]
+df<-df[sample(nrow(df)),]
+glimpse(df)
+corpus<-Corpus(VectorSource(df$text))
+corpus
+inspect(corpus[1:10])
+corpus.clean<- corpus %>%
+  tm_map(content_transformer(tolower))%>%
+  tm_map(removePunctuation)%>%
+  tm_map(removeNumbers)%>%
+  tm_map(removeWords,stopwords(kind = "en"))%>%
+  tm_map(stripWhitespace)
+dtm<-DocumentTermMatrix(corpus.clean)
+
+inspect(dtm[1:10,1:20])
+df.train<-df[1:50,]
+df.test<-df[51:100,]
+
+dtm.train<-dtm[1:50,]
+dtm.test<-dtm[51:100,]
+
+corpus.clean.train<-corpus.clean[1:50]
+corpus.clean.test<-corpus.clean[51:100]
+
+dim(dtm.train)
+fivefreq<-findFreqTerms(dtm.train,5)
+length(fivefreq)
+
+
+dtm.train.nb <-DocumentTermMatrix (corpus.clean.test,control = list(dictionary=fivefreq))
+dim(dtm.train.nb)
+dtm.test.nb <-DocumentTermMatrix (corpus.clean.test,control = list(dictionary=fivefreq))
+dim(dtm.test.nb)
+convert_count<-function(x){
+    y <-ifelse(x>0,1,0)
+    y <-factor(y,levels=c(0,1),labels=c ("no","yes"))
+    y
+}
+trainNB<-apply(dtm.train.nb, 2, convert_count)
+testNB<-apply(dtm.test.nb, 1, convert_count)
+library(wordcloud)
+wordcloud(corpus.clean,min.freq = 4,max.words=100,random.order=F,colors=brewer.pal (8,"Dark2"))
+```
+
+
+
+
+
+
+
+
+```{r global}
+library(shiny)
+library(here)
+library(vroom)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(syuzhet)
+
+sen_vaksin<- vroom(here("vaksin.csv"))
+vksn<- sen_vaksin$text
+ui <- fluidPage(
+    titlePanel("Sentimen Analisis Mengenai Vaksin COVID 19"),
+        mainPanel(
+            
+            tabsetPanel(type = "tabs",
+                        tabPanel("Bagan", plotOutput("scatterplot")), 
+                        # Plot
+                        tabPanel("Data", DT::dataTableOutput('tbl')), 
+                        # Output Data Dalam Tabel
+                        tabPanel("Wordcloud", plotOutput("Wordcloud"))
+                        )
+        )
+    )
+# SERVER
+server <- function(input, output) {
+    
+
+    # Output Data
+    output$tbl = DT::renderDataTable({
+        DT::datatable(sen_vaksin, options = list(lengthChange = FALSE))
+    })
+    
+    output$scatterplot <- renderPlot({data_vaksin<-read.csv("D:cleanvaksin.csv",stringsAsFactors = FALSE)
+
+review <-as.character(data_vaksin$text)
+myfile<-file.path("data","vaksin.csv")
+dat<-read.csv(myfile,header=T)
+get_nrc_sentiment('Positif')
+get_nrc_sentiment('negatif')
+s<-get_nrc_sentiment(review)
+
+review_combine<-cbind(data_vaksin$text,s)
+
+par(mar=rep(3,4))
+
+a<-barplot(colSums(s),col=rainbow(10),ylab='count',main='sentiment analisis')
+brplt<-a
+    },
+    height=400)
+    output$Wordcloud <- renderPlot({
+   set.seed(20)
+df<-df[sample(nrow(df)),]
+df<-df[sample(nrow(df)),]
+glimpse(df)
+
+corpus<-Corpus(VectorSource(df$text))
+corpus
+inspect(corpus[1:10])
+
+#membersihkan data data yang tidak dibutuhkan 
+
+corpus.clean<-corpus%>%
+    tm_map(content_transformer(tolower))%>%
+    tm_map(removePunctuation)%>%
+    tm_map(removeNumbers)%>%
+    tm_map(removeWords,stopwords(kind="en"))%>%
+    tm_map(stripWhitespace)
+dtm<-DocumentTermMatrix(corpus.clean)
+
+inspect(dtm[1:10,1:20])
+
+df.train<-df[1:50,]
+df.test<-df[51:100,]
+
+dtm.train<-dtm[1:50,]
+dtm.test<-dtm[51:100,]
+
+corpus.clean.train<-corpus.clean[1:50]
+corpus.clean.test<-corpus.clean[51:100]
+
+dim(dtm.train)
+fivefreq<-findFreqTerms(dtm.train,5)
+length(fivefreq)
+
+dtm.train.nb<-DocumentTermMatrix(corpus.clean.train,control = list(dictionary=fivefreq))
+
+dim(dtm.train.nb)
+
+dtm.test.nb<-DocumentTermMatrix(corpus.clean.test,control = list(dictionary=fivefreq))
+
+dim(dtm.test.nb)
+ 
+convert_count <- function(x){
+    y<-ifelse(x>0,1,0)
+    y<-factor(y,levels=c(0,1),labels=c("no","yes"))
+    y
+}
+trainNB<-apply(dtm.train.nb,2,convert_count)
+testNB<-apply(dtm.test.nb,1,convert_count)
+
+
+library(wordcloud)
+wordcloud(corpus.clean,min.freq = 4,max.words=100,random.order=F,colors=brewer.pal(8,"Dark2"))
+  })
+}
+shinyApp(ui = ui, server = server)
+```
+

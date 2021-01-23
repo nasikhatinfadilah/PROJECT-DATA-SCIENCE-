@@ -1,0 +1,75 @@
+---
+title: "ProjectPraktikumDS"
+author: "Nasikhatin Fadilah/123180035"
+date: "9/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Melakukan Pemanggilan Library
+
+```{r}
+
+library(twitteR)
+library(wordcloud)
+library(corpus)
+library(tm)
+library(RCurl)
+```
+##Imporr data dari Twitter
+```{r}
+customer_key="xIDCpqOZ2foGIDpxADlPXs5r7"
+customer_secret="0NzVwCMfOePCtcctWcPoKcs5e8xbh7yUvBl5pARzk7RJSGiEew"
+access_token="1518224958-EL54T97jUrK7gKILrJLbHW5XHDYYVpnuCNpf88W"
+access_secret="h4AGywiObequEGYBBmqVGp1Qdm2WC2H3X06quHMgXe73H"
+setup_twitter_oauth(customer_key,customer_secret,access_token,access_secret)
+
+```
+```{r}
+data_vaksin <- searchTwitter("vaksin covid, vaksin sinovac", n= 3000, lang="id") 
+```
+
+
+#Menyiampkan data
+```{r}
+vaksin.df <- twListToDF(data_vaksin)
+View(vaksin.df)
+
+```
+#membersihkan data
+```{r}
+ulasan<-vaksin.df$text
+ulasan1<-Corpus(VectorSource(ulasan))
+removeURL<-function(x) gsub("http[^[:space:]]*", "", x)
+textclean<-tm_map(ulasan1, removeURL)
+removeNL<-function(y) gsub("\n", "", y)
+textclean<-tm_map(ulasan1, removeNL)
+replacecomma<-function(y) gsub(",", "", y)
+textclean<-tm_map(ulasan1, replacecomma)
+removetitik2<-function(y) gsub(":", "", y)
+textclean<-tm_map(ulasan1, removetitik2)
+removetitikkoma<-function(y) gsub(";", "", y)
+textclean<-tm_map(ulasan1, removetitikkoma)
+removesymbol<-function(y) gsub("@", "", y)
+textclean<-tm_map(ulasan1, removesymbol)
+removetitik3<-function(y) gsub("...", "", y)
+textclean<-tm_map(ulasan1, removetitik3)
+removehastag<-function(y) gsub("#", "", y)
+textclean<-tm_map(ulasan1, removehastag)
+remove.all<-function(xy) gsub("[^[:alpha:][:space:]]*", "", xy)
+textclean<-tm_map(ulasan1, remove.all)
+
+dataframe<-data.frame(text=unlist(sapply(textclean, '[')), stringsAsFactors=F)
+View(dataframe)
+write.csv(dataframe, file="vaksin.csv")
+```
+```{r}
+
+```
+
+
+
+
